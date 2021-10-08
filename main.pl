@@ -24,7 +24,7 @@ controlFlow(Option,Repeat,PlayerList,MatchList):-
   Repeat = true,
   ( Option =:= "1" -> addPlayer(PlayerList, MatchList) ;
     Option =:= "2" -> addMatch(PlayerList, MatchList) ;
-    Option =:= "3" -> searchForPlayer ;
+    Option =:= "3" -> searchForPlayer(PlayerList, MatchList) ;
     Option =:= "4" -> comparePlayers ;
     Option =:= "5" -> repeatFlow(false,_,_)
   ).
@@ -34,6 +34,7 @@ addPlayer(PlayerList, MatchList):-
   showAddPlayerMenu(Name),
   length(PlayerList, Length),
   append(PlayerList, [[Name, Length, 1200]], NewList),
+  write("Jogador adicionado com sucesso!\n\n"),
   initialFlow(true, NewList, MatchList).
 
 showAddPlayerMenu(Name):-
@@ -63,23 +64,23 @@ defineTheWinner(Winner, WinnerValidity):-
 
 analyzeWinnerInput("B", WinnerValidity):- WinnerValidity = true.
 analyzeWinnerInput("P", WinnerValidity):- WinnerValidity = true.
-analyzeWinnerInput(Winner, WinnerValidity):- WinnerValidity = false.
+analyzeWinnerInput(_, WinnerValidity):- WinnerValidity = false.
   
 searchPlayerTwoID(PlayerList, PlayerTwoID, MatchList):-
   write("Informe o nome do jogador com peças pretas: \n"),
   read_string(user, ".", "\n", _, Name),
-  searchPlayerTwo(Name, PlayerList, PlayerTwo, SearchStatus),
+  searchPlayer(Name, PlayerList, Player, SearchStatus),
   SearchStatus == false ->
     initialFlow(true, PlayerList, MatchList) ;
-    setPlayerTwoID(PlayerTwoID, PlayerTwo).
+    setPlayerTwoID(PlayerTwoID, Player).
 
 searchPlayerOneID(PlayerList, PlayerOneID, MatchList):-
   write("Informe o nome do jogador com peças brancas: \n"),
   read_string(user, ".", "\n", _, Name),
-  searchPlayerOne(Name, PlayerList, PlayerOne, SearchStatus),
+  searchPlayer(Name, PlayerList, Player, SearchStatus),
   SearchStatus == false ->
     initialFlow(true, PlayerList, MatchList) ;
-    setPlayerOneID(PlayerOneID, PlayerOne).
+    setPlayerOneID(PlayerOneID, Player).
 
 setPlayerOneID(PlayerOneID, [_|[ID|_]]):-
   PlayerOneID = ID.
@@ -87,18 +88,28 @@ setPlayerOneID(PlayerOneID, [_|[ID|_]]):-
 setPlayerTwoID(PlayerTwoID, [_|[ID|_]]):-
   PlayerTwoID = ID.
 
-searchPlayerOne(_, [], _, SearchStatus):- 
+searchPlayer(_, [], Player, SearchStatus):- 
   write("Jogador com esse nome não foi encontrado!\n\n"),
+  Player = [],
   SearchStatus = false.
-searchPlayerOne(Name, [[PName|Rest]|T], PlayerOne, SearchStatus):-
-  Name == PName -> PlayerOne = [PName|Rest] ; searchPlayerOne(Name, T, PlayerOne, SearchStatus).
+searchPlayer(Name,[[PName|Rest]|T],Player,SearchStatus):-
+  Name == PName -> Player = [PName|Rest] ; searchPlayer(Name, T, Player, SearchStatus).
 
-searchPlayerTwo(_, [], _, SearchStatus):- 
-  write("Jogador com esse nome não foi encontrado!\n\n"),
-  SearchStatus = false.
-searchPlayerTwo(Name,[[PName|Rest]|T],PlayerTwo,SearchStatus):-
-  Name == PName -> PlayerTwo = [PName|Rest] ; searchPlayerTwo(Name, T, PlayerTwo, SearchStatus).
+searchForPlayer(PlayerList, MatchList):- 
+  write("Buscando por um jogador!\n"),
+  showSearchPlayerMenu(PlayerList, MatchList).
 
+showSearchPlayerMenu(PlayerList, MatchList):-
+  write("Informe o nome do jogador que você deseja buscar: \n"),
+  read_string(user, ".", "\n", _, Name),
+  searchPlayer(Name, PlayerList, Player, SearchStatus),
+  showPlayer(Player,SearchStatus).
 
-searchForPlayer:- write("Search player").
+showPlayer(Player,SearchStatus):-
+  SearchStatus == false ->
+      write("Tente uma nova pesquisa!\n") 
+    ;
+      write("O seguinte jogador foi encontrado:\n"),
+      write(Player).
+
 comparePlayers:- write("Compare players").
