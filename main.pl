@@ -47,14 +47,23 @@ addMatch(PlayerList, MatchList):-
 showAddMatchMenu(PlayerList, MatchList):-
   searchPlayerOneID(PlayerList, PlayerOneID, MatchList),
   searchPlayerTwoID(PlayerList, PlayerTwoID, MatchList),
-  defineTheWinner(Winner),
-  append(MatchList, [[PlayerOneID, PlayerTwoID, Winner]], NewList),
-  write("Partida adicionada com sucesso!\n\n"),
-  initialFlow(true, PlayerList, NewList).
+  defineTheWinner(Winner, WinnerValidity),
+  WinnerValidity == true ->
+      append(MatchList, [[PlayerOneID, PlayerTwoID, Winner]], NewList),
+      write("Partida adicionada com sucesso!\n\n"),
+      initialFlow(true, PlayerList, NewList)
+    ;
+      write("Cor da peça vencedora não reconhecida");
+      initialFlow(true, PlayerList, MatchList).
 
-defineTheWinner(Winner):-
+defineTheWinner(Winner, WinnerValidity):-
   write("Informe a cor das peças do jogador vencedor(B - Branca | P - Preta): \n"),
-  read_string(user, ".", "\n", _, Winner).
+  read_string(user, ".", "\n", _, Winner),
+  analyzeWinnerInput(Winner, WinnerValidity).
+
+analyzeWinnerInput("B", WinnerValidity):- WinnerValidity = true.
+analyzeWinnerInput("P", WinnerValidity):- WinnerValidity = true.
+analyzeWinnerInput(Winner, WinnerValidity):- WinnerValidity = false.
   
 searchPlayerTwoID(PlayerList, PlayerTwoID, MatchList):-
   write("Informe o nome do jogador com peças pretas: \n"),
