@@ -25,7 +25,7 @@ controlFlow(Option,Repeat,PlayerList,MatchList):-
   ( Option =:= "1" -> addPlayer(PlayerList, MatchList) ;
     Option =:= "2" -> addMatch(PlayerList, MatchList) ;
     Option =:= "3" -> searchForPlayer(PlayerList, MatchList) ;
-    Option =:= "4" -> comparePlayers ;
+    Option =:= "4" -> comparePlayers(PlayerList, MatchList) ;
     Option =:= "5" -> repeatFlow(false,_,_)
   ).
 
@@ -95,6 +95,13 @@ searchPlayer(_, [], Player, SearchStatus):-
 searchPlayer(Name,[[PName|Rest]|T],Player,SearchStatus):-
   Name == PName -> Player = [PName|Rest] ; searchPlayer(Name, T, Player, SearchStatus).
 
+searchPlayerTwo(_, [], Player, SearchStatus):- 
+  write("Jogador com esse nome não foi encontrado!\n\n"),
+  Player = [],
+  SearchStatus = false.
+searchPlayerTwo(Name,[[PName|Rest]|T],Player,SearchStatus):-
+  Name =:= PName -> Player = [PName|Rest] ; searchPlayer(Name, T, Player, SearchStatus).
+
 searchForPlayer(PlayerList, MatchList):- 
   write("Buscando por um jogador!\n"),
   showSearchPlayerMenu(PlayerList, MatchList).
@@ -103,13 +110,54 @@ showSearchPlayerMenu(PlayerList, MatchList):-
   write("Informe o nome do jogador que você deseja buscar: \n"),
   read_string(user, ".", "\n", _, Name),
   searchPlayer(Name, PlayerList, Player, SearchStatus),
-  showPlayer(Player,SearchStatus).
+  showPlayer(Player,SearchStatus),
+  initialFlow(true, PlayerList, MatchList).
+
 
 showPlayer(Player,SearchStatus):-
   SearchStatus == false ->
       write("Tente uma nova pesquisa!\n") 
     ;
       write("O seguinte jogador foi encontrado:\n"),
-      write(Player).
+      write(Player),
+      write("\n\n").
 
-comparePlayers:- write("Compare players").
+comparePlayers(PlayerList, MatchList):- 
+  write("Comparando dois jogadores de acordo com seu ELO!\n"),
+  showComparePlayersMenu(PlayerList, MatchList).
+
+showComparePlayersMenu(PlayerList, MatchList):-
+  searchFirstPlayer(PlayerList, PlayerOne, SearchStatus, MatchList),
+  searchSecondPlayer(PlayerList, PlayerTwo, SearchStatus, MatchList),
+  compareTwoPlayers(PlayerOne, PlayerTwo).
+
+searchFirstPlayer(PlayerList, PlayerOne, SearchStatus, MatchList):-
+  write("Informe o nome do primeiro jogador:\n"),
+  read_string(user, ".", "\n", _, Name),
+  searchPlayer(Name, PlayerList, PlayerOne, SearchStatus),
+  SearchStatus == false ->
+    initialFlow(true, PlayerList, MatchList) ;
+    write("Jogador encontrado!").
+
+searchSecondPlayer(PlayerList, PlayerTwo, SearchStatus, MatchList):-
+  write("Informe o nome do segundo jogador:\n"),
+  read_string(user_input, "\n", "\n", _, NameInput),
+  remove_chars(NameInput, ., Name),
+  searchPlayer(Name, PlayerList, PlayerTwo, SearchStatus),
+  SearchStatus == false ->
+    initialFlow(true, PlayerList, MatchList) ;
+    write("Jogador encontrado!").
+
+compareTwoPlayers([HOne|_], [HTwo|_]):-
+  append(HOne, " ", FirstPlayerName),
+  append(FirstPlayerName, HTwo, PlayersName),
+  append("Comparando os jogadores ", PlayersName, OutputString),
+  write(OutputString).
+
+remove_chars(String, CharRemove, R ) :-
+  atom_codes(X, String),
+  atom_chars( X , Xs ),
+  select(CharRemove, Xs , Ys ),
+  atomic_list_concat(Ys, "", Atom),
+  atom_string(Atom, R),
+  write(R).
