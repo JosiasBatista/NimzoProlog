@@ -2,8 +2,10 @@
 
 Descrição do Projeto
 ```
-Nimzo é um sistema desenvolvido em Prolog para a disciplina de PLP que usa o sistema ELO para gerenciar e ranquear os jogadores de xadrez cadastrados. O projeto visa implementar um método eficiente de ranquear
-os jogadores de acordo com uma pontuação chamada ELO que varia de acordo com as suas vitórias e derrotas.
+Nimzo é um sistema desenvolvido em Prolog para a disciplina de PLP que usa o sistema ELO 
+para gerenciar e ranquear os jogadores de xadrez cadastrados. O projeto visa implementar 
+um método eficiente de ranquear os jogadores de acordo com uma pontuação chamada ELO que 
+varia de acordo com as suas vitórias e derrotas.
 ```
 
 # Como rodar o projeto
