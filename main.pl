@@ -1,3 +1,5 @@
+:- use_module(library(readutil)).
+
 main:- initialFlow(true, [], []).
 
 save(Players,Matches):-
@@ -46,41 +48,72 @@ addMatch(PlayerList, MatchList):-
   showAddMatchMenu(PlayerList, MatchList).
 
 showAddMatchMenu(PlayerList, MatchList):-
-  searchPlayerOneID(PlayerList, PlayerOneID, MatchList),
-  searchPlayerTwoID(PlayerList, PlayerTwoID, MatchList),
+  searchPlayerOneID(PlayerList, PlayerOne, PlayerOneID, MatchList),
+  searchPlayerTwoID(PlayerList, PlayerTwo, PlayerTwoID, MatchList),
   defineTheWinner(Winner, WinnerValidity),
   WinnerValidity == true ->
       append(MatchList, [[PlayerOneID, PlayerTwoID, Winner]], NewList),
+      changePlayersELO(PlayerOne, PlayerTwo, Winner, PlayerList, NewPlayerList),
+      write(NewPlayerList),
       write("Partida adicionada com sucesso!\n\n"),
-      initialFlow(true, PlayerList, NewList)
+      initialFlow(true, NewPlayerList, NewList)
     ;
       write("Cor da peça vencedora não reconhecida");
       initialFlow(true, PlayerList, MatchList).
 
+changePlayersELO(PlayerOne, PlayerTwo, Winner, PlayerList, NewPlayerList):-
+  select(PlayerOne, PlayerList, NewList),
+  select(PlayerTwo, NewList, PlayerListWithoutPlayers),
+  nth0(2, PlayerOne, ELOPOne),
+  nth0(2, PlayerTwo, ELOPTwo),
+  calculateNewELO(ELOPOne, ELOPTwo, Winner, NewELO1, NewELO2),
+  setPlayerELO(PlayerOne, NewELO1, NewPlayerOne),
+  setPlayerELO(PlayerTwo, NewELO2, NewPlayerTwo),
+  append(PlayerListWithoutPlayers, [NewPlayerOne], NewListWithPOne),
+  append(NewListWithPOne, [NewPlayerTwo], NewPlayerList).
+  
+setPlayerELO(Player, NewELO, NewPlayer):-
+  nth0(0, Player, PlayerName),
+  nth0(1, Player, PlayerID),
+  NewPlayer = [PlayerName, PlayerID, NewELO].
+
+calculateNewELO(ELOPOne, ELOPTwo, Winner, NewELO1, NewELO2):-
+  analyzeResult(Winner, R),
+  getNewELO(R, ELOPOne, ELOPTwo, NewELO1, NewELO2).
+
+getNewELO(R, ELOPOne, ELOPTwo, NewELO1, NewELO2):-
+  winChance(ELOPOne, ELOPTwo, WinChance),
+  NewELO1 is (ELOPOne + 30 * (R - WinChance)),
+  NewELO2 is (ELOPTwo - 30 * (R - WinChance)).
+
+analyzeResult("B",R):- R is 1.
+analyzeResult("P",R):- R is 0.
+analyzeResult("E",R):- R is 0.5.
+
+
 defineTheWinner(Winner, WinnerValidity):-
-  write("Informe a cor das peças do jogador vencedor(B - Branca | P - Preta): \n"),
+  write("Informe a cor das peças do jogador vencedor(B - Branca | P - Preta | E - Empate): \n"),
   read_string(user, ".", "\n", _, Winner),
   analyzeWinnerInput(Winner, WinnerValidity).
 
 analyzeWinnerInput("B", WinnerValidity):- WinnerValidity = true.
 analyzeWinnerInput("P", WinnerValidity):- WinnerValidity = true.
+analyzeWinnerInput("E", WinnerValidity):- WinnerValidity = true.
 analyzeWinnerInput(_, WinnerValidity):- WinnerValidity = false.
   
-searchPlayerTwoID(PlayerList, PlayerTwoID, MatchList):-
+searchPlayerTwoID(PlayerList, Player, PlayerTwoID, MatchList):-
   write("Informe o nome do jogador com peças pretas: \n"),
   read_string(user, ".", "\n", _, Name),
   searchPlayer(Name, PlayerList, Player, SearchStatus),
-  SearchStatus == false ->
-    initialFlow(true, PlayerList, MatchList) ;
-    setPlayerTwoID(PlayerTwoID, Player).
+  showSearchStatus(SearchStatus, Player, PlayerList, MatchList),
+  setPlayerTwoID(PlayerTwoID, Player).
 
-searchPlayerOneID(PlayerList, PlayerOneID, MatchList):-
+searchPlayerOneID(PlayerList, Player, PlayerOneID, MatchList):-
   write("Informe o nome do jogador com peças brancas: \n"),
   read_string(user, ".", "\n", _, Name),
   searchPlayer(Name, PlayerList, Player, SearchStatus),
-  SearchStatus == false ->
-    initialFlow(true, PlayerList, MatchList) ;
-    setPlayerOneID(PlayerOneID, Player).
+  showSearchStatus(SearchStatus, Player, PlayerList, MatchList),
+  setPlayerOneID(PlayerOneID, Player).
 
 setPlayerOneID(PlayerOneID, [_|[ID|_]]):-
   PlayerOneID = ID.
@@ -135,29 +168,32 @@ searchFirstPlayer(PlayerList, PlayerOne, SearchStatus, MatchList):-
   write("Informe o nome do primeiro jogador:\n"),
   read_string(user, ".", "\n", _, Name),
   searchPlayer(Name, PlayerList, PlayerOne, SearchStatus),
+  showSearchStatus(SearchStatus, PlayerOne, PlayerList, MatchList).
+
+showSearchStatus(SearchStatus, Player, PlayerList, MatchList):-
   SearchStatus == false ->
-    initialFlow(true, PlayerList, MatchList) ;
-    write("Jogador encontrado!").
+      Player = [],
+      initialFlow(true, PlayerList, MatchList)
+    ;
+      write("O seguinte jogador foi encontrado:\n"),
+      write(Player),
+      write("\n\n").
 
 searchSecondPlayer(PlayerList, PlayerTwo, SearchStatus, MatchList):-
   write("Informe o nome do segundo jogador:\n"),
-  read_string(user_input, "\n", "\n", _, NameInput),
-  remove_chars(NameInput, ., Name),
+  read_string(user, ".", "\n", _, Name),
   searchPlayer(Name, PlayerList, PlayerTwo, SearchStatus),
-  SearchStatus == false ->
-    initialFlow(true, PlayerList, MatchList) ;
-    write("Jogador encontrado!").
+  showSearchStatus(SearchStatus, PlayerTwo, PlayerList, MatchList).
 
-compareTwoPlayers([HOne|_], [HTwo|_]):-
-  append(HOne, " ", FirstPlayerName),
-  append(FirstPlayerName, HTwo, PlayersName),
-  append("Comparando os jogadores ", PlayersName, OutputString),
-  write(OutputString).
+compareTwoPlayers(PlayerOne, PlayerTwo):-
+  write("Comparação dos jogadores:\n"),
+  nth0(2, PlayerOne, ELOPOne),
+  nth0(2, PlayerTwo, ELOPTwo),
+  winChance(ELOPOne, ELOPTwo, Result),
+  format("Chances do Jogador 1 vencer: ~f \n", (1 - Result)),
+  format("Chances do Jogador 2 vencer: ~f \n", Result).
 
-remove_chars(String, CharRemove, R ) :-
-  atom_codes(X, String),
-  atom_chars( X , Xs ),
-  select(CharRemove, Xs , Ys ),
-  atomic_list_concat(Ys, "", Atom),
-  atom_string(Atom, R),
-  write(R).
+winChance(ELOPOne, ELOPTwo, Result):-
+  Exponent is (1 * (ELOPOne - ELOPTwo) / 400),
+  P is 10 ** Exponent,
+  Result is (1 / (1 + 1 * (P))).
